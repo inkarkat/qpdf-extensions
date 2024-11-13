@@ -1,18 +1,19 @@
 #!/bin/bash
 
+: ${PDFLETTERHEAD_EXT:=letterhead}
+: ${PDFLETTERNHEAD_DIRSPEC:=~/templates/letterheads}
+: ${PDFLETTERHEAD_FILESPEC="${PDFLETTERNHEAD_DIRSPEC}/default.pdf"}
+
 printUsage()
 {
     cat <<HELPTEXT
 Apply a (single-page) PDF file as an underlaid letterhead to the passed
-PDF-FILE(s), writing as PDF-FILE.LETTERHEAD.pdf
+PDF-FILE(s), writing as PDF-FILE.${PDFLETTERHEAD_EXT}.pdf
 HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-r|--replace] [-l|--letterhead LETTERHEAD-FILE] [--] PDF-FILE [...] [-?|-h|--help]'
 }
 
-letterheadDirspec=~/templates/letterheads
-letterheadFilespec="${letterheadDirspec}/ingo.pdf"
-letterheadInsertion=letterhead
 isReplace=
 while [ $# -ne 0 ]
 do
@@ -22,16 +23,16 @@ do
 	--letterhead|-l)
 			shift
 			if [ -e "${1:?}" ]; then
-			    letterheadFilespec="$1"
+			    PDFLETTERHEAD_FILESPEC="$1"
 			else
-			    letterheadFilespec="${letterheadDirspec}/$1"
-			    if [ ! -e "$letterheadFilespec" ]; then
+			    PDFLETTERHEAD_FILESPEC="${PDFLETTERNHEAD_DIRSPEC}/$1"
+			    if [ ! -e "$PDFLETTERHEAD_FILESPEC" ]; then
 				printf >&2 'ERROR: Letterhead file not found: %s\n' "$1"
 				exit 2
 			    fi
 			fi
 			shift
-			letterheadInsertion="$(fileExtension --basename -- "$letterheadFilespec")"
+			PDFLETTERHEAD_EXT="$(fileExtension --basename -- "$PDFLETTERHEAD_FILESPEC")"
 			;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -45,8 +46,8 @@ for filespec
 do
     [ "$isReplace" ] \
 	&& typeset -a qpdfArgs=(--replace-input) \
-	|| typeset -a outputFilespec=("${filespec}${letterheadInsertion:+.}${letterheadInsertion}.pdf")
+	|| typeset -a outputFilespec=("${filespec}${PDFLETTERHEAD_EXT:+.}${PDFLETTERHEAD_EXT}.pdf")
 
-    qpdf "${qpdfArgs[@]}" --underlay "$letterheadFilespec" --to=1 -- "$filespec" "${outputFilespec[@]}" || status=$?
+    qpdf "${qpdfArgs[@]}" --underlay "$PDFLETTERHEAD_FILESPEC" --to=1 -- "$filespec" "${outputFilespec[@]}" || status=$?
 done
 exit $status
