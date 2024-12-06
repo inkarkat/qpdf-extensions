@@ -11,7 +11,7 @@ Apply a (single-page) PDF file as an underlaid letterhead to the passed
 PDF-FILE(s), writing as PDF-FILE.${PDF_LETTERHEAD_EXT}.pdf
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-r|--replace] [-l|--letterhead LETTERHEAD-FILE] [--] PDF-FILE [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-r|--replace] [-l|--letterhead LETTERHEAD-FILE[.pdf]] [--] PDF-FILE [...] [-?|-h|--help]'
 }
 
 isReplace=
@@ -22,10 +22,11 @@ do
 	--replace|-r)	shift; isReplace=t;;
 	--letterhead|-l)
 			shift
-			if [ -e "${1:?}" ]; then
-			    PDF_LETTERHEAD_FILESPEC="$1"
+			fileArg="${1:?}"; fileArg="${fileArg%.pdf}.pdf"
+			if [ -e "$fileArg" ]; then
+			    PDF_LETTERHEAD_FILESPEC="$fileArg"
 			else
-			    PDF_LETTERHEAD_FILESPEC="${PDFLETTERNHEAD_DIRSPEC}/$1"
+			    PDF_LETTERHEAD_FILESPEC="${PDFLETTERNHEAD_DIRSPEC}/${fileArg}"
 			    if [ ! -e "$PDF_LETTERHEAD_FILESPEC" ]; then
 				printf >&2 'ERROR: Letterhead file not found: %s\n' "$1"
 				exit 2
