@@ -1,0 +1,79 @@
+#!/bin/bash
+
+: ${PDF_COMBINE_EXT:=combined}
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--force] [-o|--to TARGETDIR] [QPDF-OPTIONS ...] [--] PDF-FILE1 PDF-FILE2 [...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Combine all passed PDF-FILE(s) (to the same directory or TARGETDIR, with an
+added *.${PDF_COMBINE_EXT}.* extension).
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+RELATED COMMANDS:
+- pdfunite SRC1 SRC2 [...] TARGET does the same
+HELPTEXT
+}
+
+isForce=
+typeset -a fileExtensionArgs=()
+typeset -a qpdfArgs=()
+unset pdfFiles
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--force|-f)	shift; isForce=t;;
+	--to|-o)	shift
+			if [ ! -d "$1" ]; then
+			    printf >&2 "ERROR: Target directory '%s' does not exist\n" "$1"
+			    exit 2
+			fi
+			fileExtensionArgs+=(--rebase "${1:?}"); shift
+			;;
+	--)		qpdfArgs+=("$1"); shift; typeset -a pdfFiles=("$@"); set --; break;;
+	*)		qpdfArgs+=("$1"); shift;;
+    esac
+done
+if [ -z "${pdfFiles+t}" ]; then
+    # No files after -- captured yet; need to investigate parsed and
+    # remaining args from behind for files.
+    typeset -a pdfFiles=()
+    qpdfArgs+=("$@")
+    while [ ${#qpdfArgs[@]} -ne 0 ]
+    do
+	lastArg="${qpdfArgs[-1]}"
+	[ -e "$lastArg" ] || break
+
+	pdfFiles=("$lastArg" "${pdfFiles[@]}")
+	qpdfArgs=("${qpdfArgs[@]:0:${#qpdfArgs[@]}-1}")
+    done
+fi
+if [ ${#pdfFiles[@]} -lt 2 ]; then
+    printUsage >&2 "$0"
+    exit 2
+fi
+
+targetFilespec="$(fileExtension "${fileExtensionArgs[@]}" --splice ".${PDF_COMBINE_EXT}" -- "${pdfFiles[0]}")" || exit 3
+if [ ! "$isForce" ] && [ -e "$targetFilespec" ]; then
+    printf >&2 'Skipping existing %s\n' "$targetFilespec"
+elif qpdf --empty "${qpdfArgs[@]}" --pages "${pdfFiles[@]}" -- "$targetFilespec"; then
+    printf '%s\n' "$targetFilespec"
+fi
