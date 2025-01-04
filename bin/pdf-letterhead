@@ -1,8 +1,8 @@
 #!/bin/bash
 
 : ${PDF_LETTERHEAD_EXT:=letterhead}
-: ${PDFLETTERNHEAD_DIRSPEC:=~/templates/letterheads}
-: ${PDF_LETTERHEAD_FILESPEC="${PDFLETTERNHEAD_DIRSPEC}/default.pdf"}
+: ${PDF_LETTERHEAD_DIRSPEC:=~/templates/letterheads}
+: ${PDF_LETTERHEAD_FILESPEC="${PDF_LETTERHEAD_DIRSPEC}/default.pdf"}
 
 printUsage()
 {
@@ -26,7 +26,7 @@ do
 			if [ -e "$fileArg" ]; then
 			    PDF_LETTERHEAD_FILESPEC="$fileArg"
 			else
-			    PDF_LETTERHEAD_FILESPEC="${PDFLETTERNHEAD_DIRSPEC}/${fileArg}"
+			    PDF_LETTERHEAD_FILESPEC="${PDF_LETTERHEAD_DIRSPEC}/${fileArg}"
 			    if [ ! -e "$PDF_LETTERHEAD_FILESPEC" ]; then
 				printf >&2 'ERROR: Letterhead file not found: %s\n' "$1"
 				exit 2
